@@ -166,6 +166,49 @@ LogBRCIndex SetupLogBRC(const std::vector<Tuple>& database, const std::vector<un
     return index;
 }
 
+// break a query range into dydatic ranges to reflect binary tree behavior
+std::vector<std::string> DecomposeRange(int low, int high, int domain_size) {
+    std::vector<std::string> ranges;
+    int l = low, r = high;
+    while (l <= r) {
+        int max_size = 1;
+        while (max_size * 2 <= domain_size && l + max_size - 1 <= r && (l % max_size) == 0) {
+            max_size *= 2;
+        }
+        // std::cout << "max_size\n";
+        max_size /= 2;
+        // max_size /= 2 + 1;
+
+        if (max_size == 0) max_size = 1;
+        int end = l + max_size - 1;
+        ranges.push_back(std::to_string(l) + "-" + std::to_string(end));
+        l = end + 1;
+    }
+    return ranges;
+}
+
+// retrieve results over a range using the LogBRC index
+std::vector<int> SearchLogBRC(const LogBRCIndex& index, const std::vector<unsigned char>& key, int low, int high, int domain_size) {
+    std::vector<int> result;
+    auto ranges = DecomposeRange(low, high, domain_size);
+
+    for (const auto& range : ranges) {
+        // std::cout << "range";
+        auto K1K2 = PRF(key, range);
+        std::vector<unsigned char> K1(K1K2.begin(), K1K2.begin() + 16);
+        std::vector<unsigned char> K2(K1K2.begin() + 16, K1K2.end());
+
+        int counter = 0;
+        while (true) {
+            auto label = PRF(K1, std::to_string(counter++));
+            auto it = index.index.find(label);
+            if (it == index.index.end()) break;
+            result.push_back(Decrypt(K2, it->second));
+        }
+    }
+    return result;
+}
+
 // helper function
 void printVector(const std::vector<unsigned char>& vec) {
     std::cout << "{ ";
@@ -181,7 +224,7 @@ int main() {
     std::vector<unsigned char> key(32, 0x01);
 
     auto ED = SetupPiBas(database, key);
-    std::cout << "# of PiBas entries: " << ED.size() << "\n";
+    // std::cout << "# of PiBas entries: " << ED.size() << "\n";
 
     // for (const auto& pair : ED) {
     //     std::cout << "Key: ";
@@ -199,14 +242,28 @@ int main() {
     // std::cout << "Found " << result.size() << " entries in range [20,21]\n";
 
     int domain_size = 100;
-    auto ind = SetupLogBRC(database, key, domain_size);
-    std::cout << "LogBRC setup complete, index entries: " << ind.index.size() << "\n";
-    for (const auto& pair : ind.index) {  // Access 'index' inside 'ind'
-        std::cout << "Key: ";
-        printVector(pair.first);
-        std::cout << " -> Value: ";
-        printVector(pair.second);
-        std::cout << std::endl;
-    }
+    // auto ind = SetupLogBRC(database, key, domain_size);
+    // std::cout << "LogBRC setup complete, index entries: " << ind.index.size() << "\n";
+    // for (const auto& pair : ind.index) {  // Access 'index' inside 'ind'
+    //     std::cout << "Key: ";
+    //     printVector(pair.first);
+    //     std::cout << " -> Value: ";
+    //     printVector(pair.second);
+    //     std::cout << std::endl;
+    // }
+
+    auto index = SetupLogBRC(database, key, domain_size);
+    auto result = SearchLogBRC(index, key, 27, 31, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
+    result = SearchLogBRC(index, key, 20, 25, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
+    result = SearchLogBRC(index, key, 24, 26, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
+    result = SearchLogBRC(index, key, 20, 60, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
+    result = SearchLogBRC(index, key, 60, 61, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
+    result = SearchLogBRC(index, key, 0, 100, domain_size);
+    std::cout << "Found " << result.size() << " entries in LogBRC range search\n";
     return 0;
 }
