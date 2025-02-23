@@ -191,17 +191,17 @@ int main() {
     //     std::cout << std::endl;
     // }
 
-    auto result = RangeSearchPiBas(ED, key, 27, 31);
-    std::cout << "Found " << result.size() << " entries in range [27,31]\n";
-    result = RangeSearchPiBas(ED, key, 24, 31);
-    std::cout << "Found " << result.size() << " entries in range [24,31]\n";
-    result = RangeSearchPiBas(ED, key, 20, 21);
-    std::cout << "Found " << result.size() << " entries in range [20,21]\n";
+    // auto result = RangeSearchPiBas(ED, key, 27, 31);
+    // std::cout << "Found " << result.size() << " entries in range [27,31]\n";
+    // result = RangeSearchPiBas(ED, key, 24, 31);
+    // std::cout << "Found " << result.size() << " entries in range [24,31]\n";
+    // result = RangeSearchPiBas(ED, key, 20, 21);
+    // std::cout << "Found " << result.size() << " entries in range [20,21]\n";
 
     int domain_size = 100;
     auto ind = SetupLogBRC(database, key, domain_size);
     std::cout << "LogBRC setup complete, index entries: " << ind.index.size() << "\n";
-    for (const auto& pair : ind) {
+    for (const auto& pair : ind.index) {  // Access 'index' inside 'ind'
         std::cout << "Key: ";
         printVector(pair.first);
         std::cout << " -> Value: ";
