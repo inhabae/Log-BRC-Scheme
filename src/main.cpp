@@ -131,6 +131,41 @@ std::vector<int> RangeSearchPiBas(
         return result;
 }
 
+// Logarithmic-BRC Setup
+struct LogBRCIndex {
+    std::map<std::vector<unsigned char>, std::vector<unsigned char>> index;
+};
+
+LogBRCIndex SetupLogBRC(const std::vector<Tuple>& database, const std::vector<unsigned char>& key, int domain_size) {
+    LogBRCIndex index;
+    std::map<std::string, std::vector<int>> dyadic_to_ids;
+
+    for (const auto& tuple : database) {
+        int v = tuple.age;
+        for (int l = 0; l < std::log2(domain_size); ++l) {
+            int size = 1 << l;
+            int start = (v / size) * size;
+            int end = start + size - 1;
+            std::string range = std::to_string(start) + "-" + std::to_string(end);
+            dyadic_to_ids[range].push_back(tuple.tid);
+        }
+    }
+
+    for (const auto& [range, ids] : dyadic_to_ids) {
+        auto K1K2 = PRF(key, range);
+        std::vector<unsigned char> K1(K1K2.begin(), K1K2.begin() + 16);
+        std::vector<unsigned char> K2(K1K2.begin() + 16, K1K2.end());
+
+        int counter = 0;
+        for (int tid : ids) {
+            auto label = PRF(K1, std::to_string(counter++));
+            auto ciphertext = Encrypt(K2, tid);
+            index.index[label] = ciphertext;
+        }
+    }
+    return index;
+}
+
 // helper function
 void printVector(const std::vector<unsigned char>& vec) {
     std::cout << "{ ";
@@ -162,5 +197,16 @@ int main() {
     std::cout << "Found " << result.size() << " entries in range [24,31]\n";
     result = RangeSearchPiBas(ED, key, 20, 21);
     std::cout << "Found " << result.size() << " entries in range [20,21]\n";
+
+    int domain_size = 100;
+    auto ind = SetupLogBRC(database, key, domain_size);
+    std::cout << "LogBRC setup complete, index entries: " << ind.index.size() << "\n";
+    for (const auto& pair : ind) {
+        std::cout << "Key: ";
+        printVector(pair.first);
+        std::cout << " -> Value: ";
+        printVector(pair.second);
+        std::cout << std::endl;
+    }
     return 0;
 }
