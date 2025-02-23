@@ -7,6 +7,8 @@
 #include <iostream>
 #include <iomanip>
 
+// #include "LogBrc.h"
+
 struct Tuple {
     int tid;
     int age;
@@ -100,6 +102,35 @@ std::map<std::vector<unsigned char>, std::vector<unsigned char>> SetupPiBas(
     return ED;
 }
 
+std::vector<int> SearchPiBas(const std::map<std::vector<unsigned char>, std::vector<unsigned char>>& ED,
+    const std::vector<unsigned char>& key, int age) {
+    std::vector<int> result;
+    std::string w = std::to_string(age);
+    auto K1K2 = PRF(key, w);
+    std::vector<unsigned char> K1(K1K2.begin(), K1K2.begin() + 16);
+    std::vector<unsigned char> K2(K1K2.begin() + 16, K1K2.end());
+
+    int counter = 0;
+    while (true) {
+    auto label = PRF(K1, std::to_string(counter++));
+    auto it = ED.find(label);
+    if (it == ED.end()) break;
+    result.push_back(Decrypt(K2, it->second));
+    }
+    return result;
+}
+
+std::vector<int> RangeSearchPiBas(
+    const std::map<std::vector<unsigned char>, std::vector<unsigned char>>& ED, 
+    const std::vector<unsigned char>& key, int low, int high) {
+        std::vector<int> result;
+        for (int age = low; age <= high; ++age) {
+            auto ids = SearchPiBas(ED, key, age);
+            result.insert(result.end(), ids.begin(), ids.end());
+            }
+        return result;
+}
+
 // helper function
 void printVector(const std::vector<unsigned char>& vec) {
     std::cout << "{ ";
@@ -125,5 +156,11 @@ int main() {
     //     std::cout << std::endl;
     // }
 
+    auto result = RangeSearchPiBas(ED, key, 27, 31);
+    std::cout << "Found " << result.size() << " entries in range [27,31]\n";
+    result = RangeSearchPiBas(ED, key, 24, 31);
+    std::cout << "Found " << result.size() << " entries in range [24,31]\n";
+    result = RangeSearchPiBas(ED, key, 20, 21);
+    std::cout << "Found " << result.size() << " entries in range [20,21]\n";
     return 0;
 }
