@@ -73,11 +73,57 @@ int Decrypt(const std::vector<unsigned char>& key, const std::vector<unsigned ch
     return tid;
 }
 
+std::map<std::vector<unsigned char>, std::vector<unsigned char>> SetupPiBas(
+    const std::vector<Tuple>& database, const std::vector<unsigned char>& key) {
+    std::map<std::vector<unsigned char>, std::vector<unsigned char>> ED;
+    std::map<int, std::vector<int>> age_to_ids;
+
+    // Group tuple IDs by age
+    for (const auto& tuple : database) {
+        age_to_ids[tuple.age].push_back(tuple.tid);
+    }
+
+    // Encrypt each age group with derived keys
+    for (const auto& [age, ids] : age_to_ids) {
+        std::string w = std::to_string(age);
+        auto K1K2 = PRF(key, w);
+        std::vector<unsigned char> K1(K1K2.begin(), K1K2.begin() + 16);
+        std::vector<unsigned char> K2(K1K2.begin() + 16, K1K2.end());
+
+        int counter = 0;
+        for (int tid : ids) {
+            auto label = PRF(K1, std::to_string(counter++));
+            auto ciphertext = Encrypt(K2, tid);
+            ED[label] = ciphertext;
+        }
+    }
+    return ED;
+}
+
+// helper function
+void printVector(const std::vector<unsigned char>& vec) {
+    std::cout << "{ ";
+    for (unsigned char c : vec) {
+        std::cout << static_cast<int>(c) << " ";
+    }
+    std::cout << "}";
+}
+
+
 int main() {
+    std::vector<Tuple> database = { {1, 25}, {2, 30}, {3, 25} };
     std::vector<unsigned char> key(32, 0x01);
-    int original_tid = 10001;
-    auto ciphertext = Encrypt(key, original_tid);
-    int decrypted_tid = Decrypt(key, ciphertext);
-    std::cout << "Original tid: " << original_tid << ", Decrypted tid: " << decrypted_tid << "\n";
+
+    auto ED = SetupPiBas(database, key);
+    std::cout << "# of PiBas entries: " << ED.size() << "\n";
+
+    // for (const auto& pair : ED) {
+    //     std::cout << "Key: ";
+    //     printVector(pair.first);
+    //     std::cout << " -> Value: ";
+    //     printVector(pair.second);
+    //     std::cout << std::endl;
+    // }
+
     return 0;
 }
