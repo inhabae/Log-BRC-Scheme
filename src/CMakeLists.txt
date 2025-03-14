@@ -1,4 +1,6 @@
-add_executable(main main.cpp)
+set(SOURCES crypto.cpp logbrc.cpp pibas.cpp main.cpp)
+
+add_executable(main crypto.cpp logbrc.cpp pibas.cpp main.cpp)
 
 find_package(OpenSSL REQUIRED)
 
