@@ -6,6 +6,6 @@ The project, written in C++ with OpenSSL for cryptographic operations (HMAC-SHA2
 
 Experiments conducted on an Apple M2 with 8 GB RAM test:
 1. **Setup and Search vs. Input Size**: Varying $n$ from $2^1$ to $2^{20}$ with a fixed range [25, 50].
-2. **Search vs. Range Size**: Varying $R$ from 1 to 100 at $n = 2^{20}$.
+2. **Search vs. Range Size**: Varying $R$ from 1 to 99 at $n = 2^{20}$.
 
 Results show Log-BRC outperforms PiBas by 5–10× in search time for small ranges (e.g., 186 ms vs. 1,850 ms at $n = 2^{20}$, $R = 26$), though its setup is slightly slower (8,508 ms vs. 8,218 ms). The project demonstrates a practical trade-off between setup cost and query efficiency, optimized for constrained hardware, with potential applications in secure databases like medical or financial systems.
